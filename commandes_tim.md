@@ -1,58 +1,58 @@
 # ÉTAPE 1 : INFRASTRUCTURE & RÉSEAU
-# 1. Configuration IP
+## 1. Configuration IP
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
 
 auto lo
 iface lo inet loopback
 
-# WAN (NAT VirtualBox)
+### WAN (NAT VirtualBox)
 allow-hotplug enp0s3
 iface enp0s3 inet dhcp
 
-# LAN (Réseau Interne)
+### LAN (Réseau Interne)
 allow-hotplug enp0s8
 iface enp0s8 inet static
     address 192.168.10.1/24
 EOF
 
-# 2. Activer le Routage (IP Forwarding)
+## 2. Activer le Routage (IP Forwarding)
 echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
 sysctl -p
 
-# 3. Configurer le NAT (Masquerade)
+## 3. Configurer le NAT (Masquerade)
 apt update && apt install -y iptables iptables-persistent
 iptables -t nat -A POSTROUTING -o enp0s3 -j MASQUERADE
 iptables-save > /etc/iptables/rules.v4
 
-# 4. Appliquer
+## 4. Appliquer
 systemctl restart networking
 
 
 # ÉTAPE 2 : SAUVEGARDE & RESTAURATION
 
-# 1. Configuration IP et Passerelle
+## 1. Configuration IP et Passerelle
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
 
 auto lo
 iface lo inet loopback
 
-# LAN
+### LAN
 allow-hotplug enp0s3
 iface enp0s3 inet static
     address 192.168.10.10/24
     gateway 192.168.10.1
 EOF
 
-# 2. DNS Temporaire (pour installer les paquets)
+## 2. DNS Temporaire (pour installer les paquets)
 echo "nameserver 1.1.1.1" > /etc/resolv.conf
 
-# 3. Appliquer
+## 3. Appliquer
 systemctl restart networking
 
 
-# Création du script
+### Création du script
 cat << 'EOF' > /usr/local/bin/backup_system.sh
 #!/bin/bash
 BACKUP_DIR="/var/backups/infra_snapshots"
@@ -62,10 +62,10 @@ ARCHIVE_NAME="$BACKUP_DIR/$HOSTNAME-$DATE.tar.gz"
 
 mkdir -p $BACKUP_DIR
 
-# Liste des paquets
+### Liste des paquets
 dpkg --get-selections > $BACKUP_DIR/installed_packages.txt
 
-# Archive (Config + Home + Web + DNS + DB)
+### Archive (Config + Home + Web + DNS + DB)
 tar -czf $ARCHIVE_NAME \
     /etc \
     /home \
@@ -76,18 +76,18 @@ tar -czf $ARCHIVE_NAME \
     $BACKUP_DIR/installed_packages.txt \
     --exclude=$BACKUP_DIR 2>/dev/null
 
-# Suppression vieux backups (+7 jours)
+### Suppression vieux backups (+7 jours)
 find $BACKUP_DIR -type f -name "*.tar.gz" -mtime +7 -delete
 echo "Backup OK: $ARCHIVE_NAME"
 EOF
 
-# Rendre exécutable
+### Rendre exécutable
 chmod +x /usr/local/bin/backup_system.sh
 
-# Ajout au crontab (3h du matin)
+### Ajout au crontab (3h du matin)
 (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/backup_system.sh") | crontab -
 
-# Restauration
+### Restauration
 
 #!/bin/bash
 
@@ -104,10 +104,10 @@ echo "dpkg --set-selections < /var/backups/infra_snapshots/installed_packages.tx
 
 # ÉTAPE 3 : SERVICES (Sur VM-Services)
 
-# Installation
+### Installation
 apt install -y bind9 bind9utils bind9-doc
 
-# Déclaration de la zone
+### Déclaration de la zone
 cat << EOF > /etc/bind/named.conf.local
 zone "projet.lan" {
     type master;
@@ -115,7 +115,7 @@ zone "projet.lan" {
 };
 EOF
 
-# Fichier de zone
+### Fichier de zone
 cat << EOF > /etc/bind/db.projet.lan
 ;
 ; BIND data file for projet.lan
@@ -134,23 +134,23 @@ ns      IN      A       192.168.10.10
 www     IN      CNAME   projet.lan.
 EOF
 
-# Redémarrage
+### Redémarrage
 systemctl restart bind9
 
-# Configuration locale pour utiliser ce DNS
+### Configuration locale pour utiliser ce DNS
 echo -e "domain projet.lan\nsearch projet.lan\nnameserver 192.168.10.10" > /etc/resolv.conf
 
-# Installation
+### Installation
 apt install -y apache2 openssl
 
-# Certificat SSL auto-signé
+### Certificat SSL auto-signé
 mkdir -p /etc/apache2/ssl
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/apache2/ssl/apache.key \
     -out /etc/apache2/ssl/apache.crt \
     -subj "/C=FR/ST=France/L=Paris/O=Projet/CN=projet.lan"
 
-# Configuration VirtualHost
+### Configuration VirtualHost
 cat << EOF > /etc/apache2/sites-available/projet-ssl.conf
 <VirtualHost *:443>
     ServerName www.projet.lan
@@ -161,15 +161,15 @@ cat << EOF > /etc/apache2/sites-available/projet-ssl.conf
 </VirtualHost>
 EOF
 
-# Activation
+### Activation
 a2enmod ssl
 a2ensite projet-ssl.conf
 systemctl restart apache2
 
-# Installation
+### Installation
 apt install -y mariadb-server
 
-# Création Base et Utilisateur
+### Création Base et Utilisateur
 mariadb -u root <<EOF
 CREATE DATABASE filrouge_db;
 CREATE USER 'admin_projet'@'localhost' IDENTIFIED BY 'SuperMotDePasse!';
