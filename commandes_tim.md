@@ -87,6 +87,20 @@ chmod +x /usr/local/bin/backup_system.sh
 # Ajout au crontab (3h du matin)
 (crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/backup_system.sh") | crontab -
 
+# Restauration
+
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    echo "Précisez le fichier de backup."
+    exit 1
+fi
+
+echo "Restauration en cours..."
+tar -xzf $1 -C /
+echo "Fichiers restaurés. Pensez à réinstaller les paquets si nécessaire :"
+echo "dpkg --set-selections < /var/backups/infra_snapshots/installed_packages.txt && apt-get dselect-upgrade"
+
 
 # ÉTAPE 3 : SERVICES (Sur VM-Services)
 
