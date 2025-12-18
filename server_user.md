@@ -21,6 +21,8 @@ sudo deluser --remove-home
 sudo kill -9 -- Nom du process ou id--
 ```
 
+- Add un user dans un groupe
+sudo usermod -aG groupName userName
 
 
 
