@@ -94,3 +94,5 @@ echo "Test réussi" > validation.txt
 ls -l ~/backup_system/syncthing/data_backup/projet/
 # validation.txt doit apparaître
 ```
+
+scp .stversions/---.txt utilisateur@ip_du_serveur_2:/---
